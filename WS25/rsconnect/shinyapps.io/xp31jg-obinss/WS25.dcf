@@ -1,0 +1,13 @@
+name: WS25
+title: WS25
+username: xp31jg-obinss
+account: xp31jg-obinss
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 16160294
+bundleId: 11227353
+url: https://xp31jg-obinss.shinyapps.io/WS25/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: arthroplasty_registry_comprehensive_data.csv|data_pipeline.R|full_dataset.rds|patient_demo.rds|sf36_scoring.R|shiny_data.rds|walkthrough.md|www

@@ -12,7 +12,7 @@ library(scales)
 library(bslib)
 library(survival)
 
-# --- Data Loading ---------
+# --- Data Loading --------------
 # Load pre-processed data
 patient_demo <- readRDS("full_dataset.rds")
 scored_data <- readRDS("shiny_data.rds")
@@ -36,7 +36,7 @@ master_data <- patient_demo %>%
     procedure_stage = ifelse(str_detect(op_type, "(?i)Revision"), "Revision", "Primary"),
     
     # ASA Grouping (Fix string parsing)
-    asa_clean = str_extract(pat_asa_surgery, "\\d+"), # Extract number
+    asa_clean = str_extract(pat_asa_surgery, "\\d+"), # Extract number using the created function
     asa_label = case_when(
       asa_clean == "1" ~ "ASA I",
       asa_clean == "2" ~ "ASA II",
@@ -45,14 +45,14 @@ master_data <- patient_demo %>%
       TRUE ~ "Unknown"
     ),
     
-    # BMI Calculation (if not already valid)
+    # BMI Calculation (added if the previous script fails to save this as a new column)
     bmi = ifelse(is.na(bmi_surgery), bmi_enrollment, bmi_surgery),
     
     # Hospital Name (Clean up)
     hospital = str_to_title(str_trim(hospital_of_surgery_surgery)),
     hospital = ifelse(is.na(hospital) | hospital == "", "Unknown", hospital),
     
-    # Manufacturer (Handle NAs)
+    # Manufacturer (Handle missing values)
     manufacturer = case_when(
       !is.na(stem_manufucturer) & stem_manufucturer != "" ~ stem_manufucturer,
       !is.na(implant_manufacturer_surgery) & implant_manufacturer_surgery != "" ~ str_trim(implant_manufacturer_surgery),
@@ -62,12 +62,15 @@ master_data <- patient_demo %>%
     # Time variables
     year = year(date_surgery),
     month = floor_date(date_surgery, "month"),
-    week = floor_date(date_surgery, "week")
+    week = floor_date(date_surgery, "week"),
+    
+    # Gender Label
+    gender_label = ifelse(is.na(gender) | gender == "", "Unknown", gender)
   )
 
-# --- Helper Functions ----------
+# --- Helper Functions ------------
 
-# Generate Benchmark Data for Funnel Plot (Simulated)
+# Generate Benchmark Data for Funnel Plot (Simulated data to make the funnel plot assuming data from other hospitals in kKenya)
 generate_benchmark_data <- function(knh_data) {
   # Calculate KNH stats
   knh_vol <- nrow(knh_data)
@@ -104,8 +107,8 @@ generate_benchmark_data <- function(knh_data) {
 # --- UI Definition ------------
 ui <- dashboardPage(
   skin = "black",
-  dashboardHeader(title = "Kenya Arthroplasty Registry",
-    # Theme Selector in Header
+  dashboardHeader(title = "Kenyatta National Hospital Arthroplasty Registry",
+    # Theme Selector in Header for more options
     tags$li(class = "dropdown",
             style = "padding: 8px;",
             selectInput("theme_selector", NULL, 
@@ -123,13 +126,24 @@ ui <- dashboardPage(
       h4("Global Filters", style = "padding-left: 15px; color: #b8c7ce;"),
       selectInput("filter_joint", "Joint:", choices = c("All", "Hip", "Knee", "Other"), selected = "All"),
       
-      # Age Filter: Plotly Histogram + Range Slider
+      # Age Filter: Plotly Histogram with a Range Slider
       div(style = "padding: 0 15px;",
           p("Age Distribution (Select Range):", style = "color: #b8c7ce; font-size: 12px; margin-bottom: 5px;"),
           plotlyOutput("age_hist_slider", height = "120px")
       ),
       
-      selectInput("filter_year_global", "Year:", choices = c("All", sort(unique(master_data$year))), selected = "All")
+      # Timeline Slider (Month-Year-Week)
+      sliderInput("date_slider", "Timeline:",
+                  min = as.Date("2010-01-01"), 
+                  max = Sys.Date(),
+                  value = c(as.Date("2010-01-01"), Sys.Date()),
+                  timeFormat = "%b %Y",
+                  step = 7), # Step by approx 1 week
+      
+      hr(),
+      div(style="text-align: center;", 
+          actionButton("reset_filters", "Reset Filters", icon = icon("refresh"), 
+                       style = "color: #fff; background-color: #d9534f; border-color: #d43f3a; width: 80%;"))
     )
   ),
   
@@ -146,12 +160,12 @@ ui <- dashboardPage(
     ),
     
     tabItems(
-      # --- Tab 1: Quality Control ---
+      # --- Tab 1: Quality Control -----------
       tabItem(tabName = "quality",
         fluidRow(
           box(width = 12, title = "Hospital Performance: Revision Rate Funnel Plot", status = "primary", solidHeader = TRUE,
               plotlyOutput("funnel_plot", height = "500px"),
-              p("Comparison of KNH (Red Diamond) against National Benchmark (Simulated).")
+              p("Comparison of KNH *(Red Diamond)* against National Benchmark (Simulated data).")
           )
         ),
         fluidRow(
@@ -163,23 +177,23 @@ ui <- dashboardPage(
         )
       ),
       
-      # --- Tab 2: Operational Volume ---
+      # --- Tab 2: Operational Volume -----------
       tabItem(tabName = "operations",
         fluidRow(
           valueBoxOutput("vol_total_box", width = 3),
           valueBoxOutput("vol_primary_box", width = 3),
           valueBoxOutput("vol_rev_box", width = 3),
-          valueBoxOutput("avg_age_box", width = 3)
+          valueBoxOutput("risk_box", width = 3) 
         ),
         fluidRow(
-          box(width = 8, title = "Volume Trends", status = "primary",
-              div(style="display:inline-block; vertical-align:top;", 
+          box(width = 12, title = "Volume Trends", status = "primary",
+              div(style="display:inline-block; vertical-align:top; margin-right: 20px;", 
                   selectInput("vol_time_filter", "Time Scale:", 
                               choices = c("Week", "Month", "Year", "All Time"), selected = "Month", width = "150px")),
+              div(style="display:inline-block; vertical-align:top;", 
+                  selectInput("vol_gender", "Gender Filter:", 
+                              choices = c("All", "Male", "Female"), selected = "All", width = "150px")),
               plotlyOutput("volume_trend_plot", height = "400px")
-          ),
-          box(width = 4, title = "ASA Score Distribution", status = "primary",
-              plotlyOutput("asa_plot", height = "400px")
           )
         ),
         fluidRow(
@@ -189,7 +203,7 @@ ui <- dashboardPage(
         )
       ),
       
-      # --- Tab 3: Complications ---
+      # --- Tab 3: Complications ----------
       tabItem(tabName = "complications",
         fluidRow(
           box(width = 12, title = "Surgical Complications Survival Analysis", status = "danger",
@@ -198,11 +212,11 @@ ui <- dashboardPage(
           )
         ),
         fluidRow(
-          box(width = 6, title = "Reasons for Early Revision (<2 Years)", status = "warning",
+          box(width = 6, title = "Early Revision Reasons (<90 Days)", status = "warning",
               plotlyOutput("early_revision_reasons", height = "400px")
           ),
-          box(width = 6, title = "Risk of Complication Over Time", status = "warning",
-              selectInput("comp_time_filter", "Time Scale:", choices = c("Week", "Month", "Year"), selected = "Month"),
+          box(width = 6, title = "Complication Risk by ASA Score", status = "warning",
+              selectInput("comp_time_filter", "Time Scale:", choices = c("Week", "Month", "Year"), selected = "Year"),
               plotlyOutput("complication_risk_plot", height = "400px")
           )
         )
@@ -215,32 +229,78 @@ ui <- dashboardPage(
 server <- function(input, output, session) {
   
   ## --- Reactive Theme --------
+  # Define themes outside reactive for efficiency, or use bslib::bs_theme
+  themes <- list(
+    "Standard" = list(primary = "steelblue", secondary = "lightblue", accent = "red", text = "black", bg = "white"),
+    "Vibrant" = list(primary = "#9b59b6", secondary = "#e74c3c", accent = "#f1c40f", text = "#2c3e50", bg = "#ecf0f1"),
+    "Dark Mode" = list(primary = "#3498db", secondary = "#95a5a6", accent = "#e74c3c", text = "white", bg = "#2c3e50"),
+    "Nature" = list(primary = "#27ae60", secondary = "#8e44ad", accent = "#d35400", text = "#2c3e50", bg = "#fdfefe"),
+    "Pastel" = list(primary = "#ffb3ba", secondary = "#baffc9", accent = "#bae1ff", text = "#555555", bg = "#fffdf9"),
+    "Ocean" = list(primary = "#006994", secondary = "#00a8cc", accent = "#ff7f50", text = "#003366", bg = "#e0f7fa")
+  )
+  
   current_theme <- reactive({
-    switch(input$theme_selector,
-           "Standard" = list(primary = "steelblue", secondary = "lightblue", accent = "red", text = "black", bg = "white"),
-           "Vibrant" = list(primary = "#9b59b6", secondary = "#e74c3c", accent = "#f1c40f", text = "#2c3e50", bg = "#ecf0f1"),
-           "Dark Mode" = list(primary = "#3498db", secondary = "#95a5a6", accent = "#e74c3c", text = "white", bg = "#2c3e50"),
-           "Nature" = list(primary = "#27ae60", secondary = "#8e44ad", accent = "#d35400", text = "#2c3e50", bg = "#fdfefe"),
-           "Pastel" = list(primary = "#ffb3ba", secondary = "#baffc9", accent = "#bae1ff", text = "#555555", bg = "#fffdf9"),
-           "Ocean" = list(primary = "#006994", secondary = "#00a8cc", accent = "#ff7f50", text = "#003366", bg = "#e0f7fa")
-    )
+    themes[[input$theme_selector]]
   })
   
-  ## --- Reactive Values for Age Filter ---------
-  age_range <- reactiveVal(c(15, 85))
+  # Update Date Slider based on the available data
+  observe({
+    min_date <- min(master_data$date_surgery, na.rm = TRUE)
+    max_date <- max(master_data$date_surgery, na.rm = TRUE)
+    updateSliderInput(session, "date_slider", min = min_date, max = max_date, value = c(min_date, max_date))
+  })
   
-  observeEvent(event_data("plotly_relayout", source = "age_hist"), {
-    d <- event_data("plotly_relayout", source = "age_hist")
-    if (!is.null(d[["xaxis.range[0]"]])) {
-      age_range(c(d[["xaxis.range[0]"]], d[["xaxis.range[1]"]]))
+  # Reactive Value for Age Filter (to allow reset)
+  selected_age_range <- reactiveVal(NULL)
+  
+  # Update Age Range from Plotly Selection
+  observeEvent(event_data("plotly_selected", source = "age_hist"), {
+    event_data <- event_data("plotly_selected", source = "age_hist")
+    if (!is.null(event_data) && nrow(event_data) > 0) {
+      min_age <- min(event_data$x)
+      max_age <- max(event_data$x)
+      selected_age_range(c(min_age, max_age))
     } else {
-      age_range(c(15, 85))
+      selected_age_range(NULL)
     }
   })
   
+  # --- Reset Filters Observer ---------
+  observeEvent(input$reset_filters, {
+    # Reset Date Slider
+    min_date <- min(master_data$date_surgery, na.rm = TRUE)
+    max_date <- max(master_data$date_surgery, na.rm = TRUE)
+    updateSliderInput(session, "date_slider", value = c(min_date, max_date))
+    
+    # Reset Dropdowns
+    updateSelectInput(session, "filter_joint", selected = "All")
+    updateSelectInput(session, "theme_selector", selected = "Standard")
+    
+    # Reset Age Filter
+    selected_age_range(NULL)
+    # Note: We can't easily clear the plotly selection visually via R without custom JS or plotlyProxyInvoke
+    # But the data filter is cleared by the line above.
+    
+    # Reset Tab Specific Filters
+    manufs <- unique(master_data$manufacturer)
+    manufs <- manufs[manufs != "Unknown"]
+    updateSelectInput(session, "ccs_manufacturer", choices = manufs, selected = manufs[1])
+    
+    updateSelectInput(session, "vol_time_filter", selected = "Month")
+    updateSelectInput(session, "vol_gender", selected = "All")
+    
+    updateSelectInput(session, "comp_time_filter", selected = "Month")
+  })
+  
   ## --- Reactive Data Filtering ----------
-  filtered_data <- reactive({
-    data <- master_data
+  
+  # 1. Base Filter (All except Age) - Use this for Age Histogram
+  filtered_data_no_age <- reactive({
+    data <- master_data %>%
+      filter(
+        date_surgery >= input$date_slider[1],
+        date_surgery <= input$date_slider[2]
+      )
     
     if (input$filter_joint != "All") {
       if (input$filter_joint == "Other") {
@@ -249,12 +309,17 @@ server <- function(input, output, session) {
         data <- data %>% filter(joint_label == input$filter_joint)
       }
     }
+    data
+  })
+  
+  # 2. Full Filter (Includes Age) - Use this for everything else
+  filtered_data <- reactive({
+    data <- filtered_data_no_age()
     
-    rng <- age_range()
-    data <- data %>% filter(age >= rng[1] & age <= rng[2])
-    
-    if (input$filter_year_global != "All") {
-      data <- data %>% filter(year == as.numeric(input$filter_year_global))
+    # Age Filter (from Reactive Value)
+    age_rng <- selected_age_range()
+    if (!is.null(age_rng)) {
+      data <- data %>% filter(age >= age_rng[1], age <= age_rng[2] + 5) 
     }
     
     data
@@ -262,30 +327,24 @@ server <- function(input, output, session) {
   
   ## Sidebar Age Histogram (High Contrast)-----------
   output$age_hist_slider <- renderPlotly({
-    data <- master_data
-    if (input$filter_joint != "All") {
-       if (input$filter_joint == "Other") {
-        data <- data %>% filter(joint_label == "Other")
-      } else {
-        data <- data %>% filter(joint_label == input$filter_joint)
-      }
-    }
-    if (input$filter_year_global != "All") {
-      data <- data %>% filter(year == as.numeric(input$filter_year_global))
-    }
+    # Use filtered_data_no_age to respond to other filters but not itself
+    data <- filtered_data_no_age()
     
-    # High contrast color for sidebar (Cyan/Bright Blue)
-    contrast_color <- "#00c0ef" 
-    
-    plot_ly(data, x = ~age, type = "histogram", marker = list(color = contrast_color), source = "age_hist") %>%
+    plot_ly(data, x = ~age, type = "histogram", 
+            marker = list(color = "#00c0ef", line = list(color = "white", width = 0.5)), 
+            source = "age_hist") %>%
       layout(
-        xaxis = list(title = "", rangeslider = list(visible = TRUE), range = c(15, 85), tickfont = list(color = "white")),
-        yaxis = list(title = "", showticklabels = FALSE),
-        margin = list(l=0, r=0, t=0, b=20),
-        paper_bgcolor = "rgba(0,0,0,0)",
-        plot_bgcolor = "rgba(0,0,0,0)"
+        barmode = "overlay",
+        xaxis = list(title = "", showgrid = FALSE, zeroline = FALSE, tickfont = list(color = "#b8c7ce", size = 10)),
+        yaxis = list(title = "", showgrid = FALSE, showticklabels = FALSE),
+        paper_bgcolor = "transparent",
+        plot_bgcolor = "transparent",
+        margin = list(l = 0, r = 0, t = 0, b = 20),
+        dragmode = "select",
+        selectdirection = "h"
       ) %>%
-      config(displayModeBar = FALSE)
+      config(displayModeBar = FALSE) %>%
+      event_register("plotly_selected")
   })
   
   ## --- Tab 1: Quality Control ----------
@@ -303,17 +362,18 @@ server <- function(input, output, session) {
         lower_95 = pmax(0, (avg_rate - 1.96 * se) * 100),
         upper_95 = (avg_rate + 1.96 * se) * 100,
         lower_99 = pmax(0, (avg_rate - 3.09 * se) * 100),
-        upper_99 = (avg_rate + 3.09 * se) * 100
+        upper_99 = (avg_rate + 3.09 * se) * 100,
+        tooltip_text = paste(hospital, "<br>Vol:", volume, "<br>Rate:", round(revision_rate, 2), "%")
       )
     
+    # Create base plot without KNH point
     p <- ggplot(bench, aes(x = volume, y = revision_rate)) +
       geom_point(data = subset(bench, !is_knh), color = "lightgrey", alpha = 0.5, size = 2) +
       geom_line(aes(y = upper_95), linetype = "dashed", color = "orange") +
       geom_line(aes(y = upper_99), linetype = "dashed", color = "red") +
       geom_line(aes(y = lower_95), linetype = "dashed", color = "orange") +
       geom_hline(yintercept = avg_rate * 100, color = "blue", alpha = 0.5) +
-      geom_point(data = subset(bench, is_knh), color = theme$accent, size = 6, shape = 18, 
-                 aes(text = paste(hospital, "<br>Vol:", volume, "<br>Rate:", round(revision_rate, 2), "%"))) +
+      geom_point(data = subset(bench, is_knh), color = theme$accent, size = 6, shape = 18) +
       scale_y_continuous(labels = function(x) paste0(x, "%")) +
       labs(x = "Procedure Volume", y = "Revision Rate (%)", title = "Funnel Plot: Revision Rates") +
       theme_minimal() +
@@ -321,7 +381,21 @@ server <- function(input, output, session) {
             text = element_text(color = theme$text),
             axis.text = element_text(color = theme$text))
     
-    ggplotly(p, tooltip = "text")
+    # Convert to plotly and add custom tooltip for KNH point - gave the warning as this was ignored above
+    gg <- ggplotly(p, tooltip = "text")
+    
+    # Find KNH point and add tooltip
+    knh_info <- bench %>% filter(is_knh)
+    if(nrow(knh_info) > 0) {
+      # Manually inject tooltip text into the last trace (KNH point)
+      gg$x$data[[length(gg$x$data)]]$text <- paste(
+        knh_info$hospital, "<br>Vol:", knh_info$volume, 
+        "<br>Rate:", round(knh_info$revision_rate, 2), "%"
+      )
+      gg$x$data[[length(gg$x$data)]]$hoverinfo <- "text"
+    }
+    
+    gg
   })
   
   observe({
@@ -330,7 +404,7 @@ server <- function(input, output, session) {
     updateSelectInput(session, "ccs_manufacturer", choices = manufs, selected = manufs[1])
   })
   
-  ### CCS Gauge Plot (Enhanced with Color Steps)----------
+  ### CCS Gauge Plot (Enhanced with Color Steps green for good, yellow for getting too high, red for extreme)----------
   output$ccs_gauge_plot <- renderPlotly({
     req(input$ccs_manufacturer)
     data <- filtered_data()
@@ -390,19 +464,53 @@ server <- function(input, output, session) {
   
   ##--- Tab 2: Operational Volume ---------
   
-  output$vol_total_box <- renderValueBox({ valueBox(nrow(filtered_data()), "Total Procedures", icon = icon("list"), color = "aqua") })
-  output$vol_primary_box <- renderValueBox({ valueBox(sum(filtered_data()$procedure_stage == "Primary"), "Primary", icon = icon("plus"), color = "green") })
-  output$vol_rev_box <- renderValueBox({ valueBox(sum(filtered_data()$procedure_stage == "Revision"), "Revisions", icon = icon("redo"), color = "red") })
-  output$avg_age_box <- renderValueBox({ valueBox(round(mean(filtered_data()$age, na.rm=TRUE), 1), "Avg Age", icon = icon("user"), color = "purple") })
+  # Local Reactive Data for Volume Tab (Filtered by Gender)
+  vol_tab_data <- reactive({
+    data <- filtered_data()
+    if (input$vol_gender != "All") {
+      data <- data %>% filter(gender_label == input$vol_gender)
+    }
+    # Ensure data is not empty before proceeding
+    if (nrow(data) == 0) {
+      # Return empty data frame with necessary columns to prevent errors in subsequent operations
+      return(master_data[0, ]) 
+    }
+    data
+  })
+  
+  # Helper for Safe ValueBox
+  safe_value_box <- function(value, subtitle, icon, color) {
+    val <- if (length(value) == 0 || is.na(value) || is.nan(value)) 0 else value
+    # Ensure value is unnamed to prevent error
+    val <- unname(val) 
+    valueBox(val, subtitle, icon = icon, color = color)
+  }
+  
+  output$vol_total_box <- renderValueBox({ safe_value_box(nrow(vol_tab_data()), "Total Procedures", icon("list"), "aqua") })
+  output$vol_primary_box <- renderValueBox({ safe_value_box(sum(vol_tab_data()$procedure_stage == "Primary"), "Primary", icon("plus"), "green") })
+  output$vol_rev_box <- renderValueBox({ safe_value_box(sum(vol_tab_data()$procedure_stage == "Revision"), "Revisions", icon("redo"), "red") })
+  
+  # Risk Summary Box
+  output$risk_box <- renderValueBox({ 
+    data <- vol_tab_data()
+    if (nrow(data) == 0) {
+      risk_pct <- 0
+    } else {
+      risk_pct <- mean(data$asa_clean %in% c("3", "4", "5"), na.rm = TRUE) * 100
+    }
+    val_str <- paste0(round(unname(risk_pct), 1), "%")
+    valueBox(val_str, "High Risk (ASA III+)", icon = icon("heartbeat"), color = "purple") 
+  })
   
   output$volume_trend_plot <- renderPlotly({
-    data <- filtered_data()
+    data <- vol_tab_data()
     theme <- current_theme()
     t_unit <- switch(input$vol_time_filter, "Week" = "week", "Month" = "month", "Year" = "year", "All Time" = "all")
     
     if (t_unit == "all") {
       plot_data <- data %>% summarise(n = n()) %>% mutate(time = "All Time")
-      p <- ggplot(plot_data, aes(x = time, y = n)) + geom_col(fill = theme$primary)
+      p <- ggplot(plot_data, aes(x = time, y = n)) + geom_col(fill = theme$primary) +
+        labs(x = "", y = "Cases") + theme_minimal()
     } else {
       plot_data <- data %>%
         mutate(time = floor_date(date_surgery, t_unit)) %>%
@@ -418,14 +526,36 @@ server <- function(input, output, session) {
     ggplotly(p)
   })
   
+  # --- Reactive Value for Treemap Drill-down --------
+  selected_diagnosis <- reactiveVal(NULL)
+  
   output$top_diagnoses_plot <- renderPlotly({
-    data <- filtered_data() %>% count(diagnosis) %>% filter(!is.na(diagnosis))
+    data <- vol_tab_data() %>% # Use gender-filtered data
+      count(diagnosis) %>% 
+      filter(!is.na(diagnosis)) %>%
+      mutate(diagnosis_wrapped = str_wrap(diagnosis, width = 15)) # Wrap text
+    
     theme <- current_theme()
     
-    plot_ly(data, labels = ~diagnosis, parents = NA, values = ~n, type = 'treemap',
-            textinfo = "label+value+percent parent", source = "treemap_source") %>% # Added source
-      layout(title = list(text = "Diagnoses Distribution", font = list(color = theme$text)),
-             paper_bgcolor = theme$bg)
+    p <- plot_ly(data, labels = ~diagnosis_wrapped, parents = NA, values = ~n, type = 'treemap',
+            texttemplate = "%{label}<br><b>%{percentParent}</b>", # Bold Percentage
+            textfont = list(size = 12),
+            source = "treemap_source",
+            customdata = ~diagnosis, # Store original name for click event
+            marker = list(
+              line = list(width = 2, color = "white"),
+              pad = list(t = 40, l = 5, r = 5, b = 5)  # Add padding for text
+            )) %>% 
+      layout(
+        title = list(text = "Diagnoses Distribution", font = list(color = theme$text)),
+        paper_bgcolor = theme$bg,
+        uniformtext = list(minsize = 8, mode = "show"),  # Changed to "show" to wrap text
+        margin = list(l = 0, r = 0, t = 40, b = 0)
+      )
+    
+    # Explicitly register event and RETURN the plot object
+    p <- event_register(p, 'plotly_click')
+    p
   })
   
   # Treemap Drill-down Observer
@@ -433,56 +563,58 @@ server <- function(input, output, session) {
     clickData <- event_data("plotly_click", source = "treemap_source")
     if (is.null(clickData)) return()
     
-    # Extract diagnosis label (Treemap click data structure can vary, usually 'label' or 'pointNumber' mapping)
-    # For treemap, 'label' should be present if set in plot_ly
-    diag_name <- clickData$label
+    # Extract diagnosis label
+    # Note: If using customdata, we should try to use that if available, 
+    # but treemap click data usually returns 'label' (which is now wrapped).
+    # We should use customdata if possible, or unwrap/match.
+    # Let's check customdata first.
     
-    if (is.null(diag_name)) return()
+    diag_name <- NULL
+    if ("customdata" %in% names(clickData)) {
+       diag_name <- clickData$customdata[[1]]
+    } else if ("label" %in% names(clickData)) {
+       # If wrapped, this might be an issue for matching. 
+       # But since we use customdata in plot_ly, it should be passed.
+       diag_name <- clickData$label[[1]]
+       # Fallback: remove newlines if it was wrapped and customdata failed
+       diag_name <- str_replace_all(diag_name, "\n", " ")
+    }
     
+    if (is.null(diag_name) || is.na(diag_name) || diag_name == "") return()
+    
+    # Update Reactive Value
+    selected_diagnosis(diag_name)
+    
+    # Show Modal
     showModal(modalDialog(
       title = paste("Trend for:", diag_name),
       plotlyOutput("diagnosis_trend_plot"),
       easyClose = TRUE,
       footer = NULL,
-      size = "l" # Large modal
+      size = "l"
     ))
-    
-    output$diagnosis_trend_plot <- renderPlotly({
-      theme <- current_theme()
-      data <- filtered_data() %>%
-        filter(diagnosis == diag_name) %>%
-        mutate(date_unit = floor_date(date_surgery, "month")) %>%
-        count(date_unit)
-      
-      p <- ggplot(data, aes(x = date_unit, y = n)) +
-        geom_line(color = theme$accent) +
-        geom_point(color = theme$accent) +
-        labs(x = "Date", y = "Cases", title = paste("Monthly Cases:", diag_name)) +
-        theme_minimal() +
-        theme(plot.background = element_rect(fill = theme$bg, color = NA),
-              text = element_text(color = theme$text),
-              axis.text = element_text(color = theme$text))
-      
-      ggplotly(p)
-    })
   })
   
-  output$asa_plot <- renderPlotly({
-    data <- filtered_data() %>%
-      filter(asa_label != "Unknown") %>%
-      count(asa_label)
+  # Render Modal Plot (Depends on Reactive Value)
+  output$diagnosis_trend_plot <- renderPlotly({
+    req(selected_diagnosis())
+    diag_name <- selected_diagnosis()
     theme <- current_theme()
     
-    p <- ggplot(data, aes(x = asa_label, y = n, fill = asa_label)) +
-      geom_col() +
-      scale_fill_brewer(palette = "Blues") + # Could be thematic, but Blues is safe
-      labs(title = "ASA Score Distribution", x = "ASA Score", y = "Count") +
-      theme_minimal() + 
-      theme(legend.position = "none",
-            plot.background = element_rect(fill = theme$bg, color = NA),
+    data <- filtered_data() %>%
+      filter(diagnosis == diag_name) %>%
+      mutate(date_unit = floor_date(date_surgery, "month")) %>%
+      count(date_unit)
+    
+    p <- ggplot(data, aes(x = date_unit, y = n)) +
+      geom_line(color = theme$accent) +
+      geom_point(color = theme$accent) +
+      labs(x = "Date", y = "Cases", title = paste("Monthly Cases:", diag_name)) +
+      theme_minimal() +
+      theme(plot.background = element_rect(fill = theme$bg, color = NA),
             text = element_text(color = theme$text),
             axis.text = element_text(color = theme$text))
-      
+    
     ggplotly(p)
   })
   
@@ -550,6 +682,9 @@ server <- function(input, output, session) {
   
   output$complication_risk_plot <- renderPlotly({
     data <- filtered_data()
+    req(nrow(data) > 0) # Ensure data exists
+    req(input$comp_time_filter) # Ensure input exists
+    
     theme <- current_theme()
     t_unit <- switch(input$comp_time_filter, "Week" = "week", "Month" = "month", "Year" = "year")
     
