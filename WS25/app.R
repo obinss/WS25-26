@@ -169,7 +169,7 @@ ui <- dashboardPage(
           box(
             width = 12, title = "Hospital Performance: Revision Rate Funnel Plot", status = "primary", solidHeader = TRUE,
             plotlyOutput("funnel_plot", height = "500px"),
-            p("Comparison of KNH **(Red Diamond)** against National Benchmark (Simulated data).")
+            p("Comparison of KNH (Red Diamond) against National Benchmark (Simulated data).")
           )
         ),
         fluidRow(
