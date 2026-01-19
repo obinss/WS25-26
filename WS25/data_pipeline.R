@@ -59,7 +59,7 @@ arthroplasty_std <- arthroplasty %>%
   select(registry_id, pat_umr, 
          first_name, last_name, 
          age, gender, county, 
-         diagnosis, affected_joint, op_type, # <-- Ensured op_type is here
+         diagnosis, affected_joint, op_type, # Ensured op_type is selected here
          laterality, duration_arthropathy, 
          date_enrollment, everything()
   ) %>% 
@@ -119,7 +119,7 @@ data_for_scoring <- arthroplasty_std %>%
   mutate(across(starts_with("sf36_"), extract_score)) %>%
   select(registry_id, starts_with("sf36_"), starts_with("date_")) %>% # add dates
   pivot_longer(
-    cols = starts_with("sf36_"),  # make sure to retain dates for the filters
+    cols = starts_with("sf36_"),  # making sure to retain dates for the filters
     names_to = c("question", "visit_name"),
     names_pattern = "^(sf36_\\d+)_(.*)$",
     values_to = "score"
@@ -156,7 +156,7 @@ patient_demo <- arthroplasty_std %>%
   ) %>%
   mutate(
     diagnosis = recode(diagnosis, 
-                       "Chronic trauma" = "Chronic Trauma",
+                       "Chronic trauma" = "Chronic Trauma", #why did i choose to do this manually?
                        "Congenital dislocation/ddh" = "Congenital Dislocation (DDH)",
                        "Dislocation/subluxation" = "Dislocation (Subluxation)",
                        "Implant fracture" = "Implant Fracture",
@@ -180,7 +180,7 @@ patient_demo <- arthroplasty_std %>%
   distinct(registry_id, .keep_all = TRUE) # Ensure demo data is unique per patient
 
 # Join the scores (one row per patient-visit) with the demographics (one row per patient)-----
-# terrible idea, wont make sense if we can recreate smaller sets and use them 
+# terrible idea, won't make sense if we can recreate smaller sets and use them 
 # wont this make the application slower??
 
 
