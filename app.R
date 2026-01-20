@@ -27,7 +27,8 @@ suppressPackageStartupMessages({
 })
 
 # --- Data Loading --------------
-# Load pre-processed data
+# Load pre-processed data if not downloaded the script generates the rds data from the main set
+# source("data_pipeline.R") #uncomment this line if the .rds files are missing
 patient_demo <- readRDS("full_dataset.rds")
 scored_data <- readRDS("shiny_data.rds")
 
