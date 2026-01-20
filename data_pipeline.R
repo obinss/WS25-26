@@ -1,12 +1,11 @@
 # 1. LOAD NECESSARY PACKAGES ------
-# Auto-install pacman if needed
-if (!require("pacman")) install.packages("pacman")
-pacman::p_load(
-  tidyverse, # For data manipulation (dplyr, tidyr, readr, stringr)
-  parsedate, # For flexible date parsing
-  janitor, # For cleaning names
-  lubridate # For date functions
-)
+# Install any missing packages by running: install.packages(c("tidyverse", "parsedate", "janitor", "lubridate"))
+suppressPackageStartupMessages({
+  library(tidyverse)
+  library(parsedate)
+  library(janitor)
+  library(lubridate)
+})
 
 # 2. SOURCE THE SCORING FUNCTION ------
 # This script must be in the same directory
@@ -192,3 +191,4 @@ patient_demo <- arthroplasty_std %>%
 saveRDS(scored_data, "shiny_data.rds")
 saveRDS(patient_demo, "patient_demo.rds")
 saveRDS(arthroplasty_std, "full_dataset.rds")
+

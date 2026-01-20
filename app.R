@@ -1,20 +1,37 @@
-# Auto-install and load required packages
-if (!require("pacman")) install.packages("pacman")
-pacman::p_load(
-  shiny, # Shiny web framework
-  shinydashboard, # Dashboard layout
-  plotly, # Interactive plots
-  scales, # Scale functions for plots
-  survival # Survival analysis
+# --- Package Management and Installation -------
+# Function to check and install missing packages
+ensure_packages <- function(packages) {
+  new_packages <- packages[!(packages %in% installed.packages()[, "Package"])]
+  if(length(new_packages)) install.packages(new_packages)
+}
+
+# List of required packages
+required_packages <- c(
+  "shiny", "shinydashboard", "dplyr", "stringr", "lubridate", 
+  "ggplot2", "plotly", "scales", "survival"
 )
-suppressWarnings(library(tidyverse)) # Suppress tidyverse_conflicts() messages
+
+# Install and load
+ensure_packages(required_packages)
+
+suppressPackageStartupMessages({
+  library(shiny)
+  library(shinydashboard)
+  library(dplyr)
+  library(stringr)
+  library(lubridate)
+  library(ggplot2)
+  library(plotly)
+  library(scales)
+  library(survival)
+})
 
 # --- Data Loading --------------
 # Load pre-processed data
 patient_demo <- readRDS("full_dataset.rds")
 scored_data <- readRDS("shiny_data.rds")
 
-# --- Data Preparation ----------
+# --- More Data Preparation ----------
 # Prepare Master Dataset for General Analysis
 master_data <- patient_demo %>%
   mutate(

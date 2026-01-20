@@ -160,3 +160,4 @@ score_sf36 <- function(data) {
 
   return(scored_data)
 }
+

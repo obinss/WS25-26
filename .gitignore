@@ -3,6 +3,12 @@
 .RData
 .Ruserdata
 
+# RenV
+renv/library/
+renv/python/
+renv/staging/
+renv/local/
+
 # System files
 .DS_Store
 
