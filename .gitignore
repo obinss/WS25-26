@@ -2,3 +2,12 @@
 .Rhistory
 .RData
 .Ruserdata
+
+# System files
+.DS_Store
+
+# Deployment
+rsconnect/
+
+# HTML outputs (optional)
+walkthrough.html

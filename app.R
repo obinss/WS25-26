@@ -1,9 +1,13 @@
-library(shiny)
-library(shinydashboard)
-suppressWarnings(library(tidyverse)) # suppresses the message from the tidyverse_conflicts()
-library(plotly)
-library(scales)
-library(survival)
+# Auto-install and load required packages
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(
+  shiny, # Shiny web framework
+  shinydashboard, # Dashboard layout
+  plotly, # Interactive plots
+  scales, # Scale functions for plots
+  survival # Survival analysis
+)
+suppressWarnings(library(tidyverse)) # Suppress tidyverse_conflicts() messages
 
 # --- Data Loading --------------
 # Load pre-processed data

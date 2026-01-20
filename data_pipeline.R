@@ -1,5 +1,6 @@
 # 1. LOAD NECESSARY PACKAGES ------
-# (Ensure you have run 'install.packages("pacman")' once before)
+# Auto-install pacman if needed
+if (!require("pacman")) install.packages("pacman")
 pacman::p_load(
   tidyverse, # For data manipulation (dplyr, tidyr, readr, stringr)
   parsedate, # For flexible date parsing
