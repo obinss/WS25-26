@@ -1,10 +1,8 @@
 library(shiny)
 library(shinydashboard)
 suppressWarnings(library(tidyverse)) # suppresses the message from the tidyverse_conflicts()
-library(DT)
 library(plotly)
 library(scales)
-library(bslib)
 library(survival)
 
 # --- Data Loading --------------
