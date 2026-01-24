@@ -1,66 +1,26 @@
 # Arthroplasty Registry Dashboard - Report on the creation and usage
-
-I have reworked the dashboard with some fixes for warnings (still some slip through), reactivity, and a reset button for the filters to improve the functionality of the dashboard. I had to work on the data separately using the data cleaning script, and generate a .rds file to make the application faster. The csv file is a mirror of what we get from the registry platform on REDCap and was quite heavy for my computer. I decided to work on it and split it into bite sized chunks.
-
-# Why the hospital admin perspective is important {#sec-why-the-hospital-admin-perspective-is-important}
-
-The hospital's perspective is crucial, as it is where surgeons and patients interact, all sharing a common interest. Hospitals aim to provide high-quality healthcare at reasonable costs, integrating the volume of patients into their considerations. Additionally, hospitals or departments have an interest in ensuring that patients remember the institution where they were treated successfully, encouraging them to return for any necessary future care, including reasons beyond a prosthetic joint replacement. The registry is perceived as an instrument for quality control, not only for the implants used but for the entire process, ranging from the preoperative consultation to the procedures in the operating room, as well as the postoperative follow-up. Personal recommendations from satisfied patients are the very best advertising for hospitals and related medical institutions. As institutions providing healthcare in today's competitive environment, hospitals are also very keen to uphold their reputation, and the registry is an invaluable tool for this purpose.
-
-## Some Experimental Changes
-
-### **Age Histogram Reactivity**:
-
-I particularly enjoyed working on this as it was one of the most challenging sections for the app. I had to use AI to help with the generation of this but everytime the integration would fail or result in code that doesnt work.
-
-```         
--   The Age Histogram now correctly responds to **Global Filters** (Timeline, Joint) while maintaining its own selection capability.
--   This also serves as the age selector filter
-```
-
--   **Reset Filter Button**:
-    -   Now correctly resets **all** filters (data filtering is cleared, though visual selection on histogram may persist for a few seconds).
-
-# Still getting a warning
-
-This warning has persisted since I opted to use plotly to make the plots more reactive and not just static .png images that have to be picked from the server every time.
-
-```         
-Warning: The 'plotly_click' event tied a source ID of 'treemap_source' is not registered. In order to obtain this event data, please add `event_register(p, 'plotly_click')` to the plot (`p`) that you wish to obtain event data from.
-```
-
-A more indepth discussion on the warning can be found here: <https://github.com/plotly/plotly.R/issues/1528>
-
-------------------------------------------------------------------------
-
-# Application Overview & Use Case
-
 ## Purpose
+The **Arthroplasty Registry Dashboard** is a comprehensive clinical quality monitoring and operational analytics platform designed to track, analyze, and provide crucial information for decisionmaking to improve outcomes for joint replacement surgeries (arthroplasty procedures) performed at Kenyatta National Hospital in Kenya. This dashboard serves as a surgical registry analytics platform that enables monitoring surgical quality and patient outcomes over time, compare hospital performance against national benchmarks, identify trends in procedure volumes and complication rates, track manufacturer-specific implant performance, analyze patient demographics and risk factors, and support evidence-based clinical decision-making and quality improvement initiatives.
+I have reworked the dashboard with fixes for warnings (but some get through as demonstrated below), reactivity, and a reset button for all the filters to improve the functionality of the dashboard.  I had to work on the data separately using the data cleaning script data_pipeline.R, that generate a .rds file to make the application faster. I have included code to run this script in the application in case the .rds files are missing. The csv file is a mirror of what we get from the registry platform on REDCap and was quite heavy for my computer. I decided to work on it and split it into bite sized chunks, hence the .rds files.
 
-The **Kenyatta National Hospital (KNH) Arthroplasty Registry Dashboard** is a comprehensive clinical quality monitoring and operational analytics platform designed to track, analyze, and provide crucial information for decisionmaking to improve outcomes for joint replacement surgeries (arthroplasty procedures) performed at Kenyatta National Hospital in Kenya.
+# Why the hospital admin perspective is important - Who will use the dashboard
 
-This dashboard serves as a surgical registry analytics platform that enables healthcare professionals and administrators to monitor surgical quality and patient outcomes over time, compare hospital performance against national benchmarks, identify trends in procedure volumes and complication rates, track manufacturer-specific implant performance, analyze patient demographics and risk factors, and support evidence-based clinical decision-making and quality improvement initiatives.
+The hospital's perspective is crucial, as it is where surgeons and patients interact. Hospitals aim to provide high-quality healthcare at reasonable costs, integrating the volume of patients into their considerations. Additionally, hospitals or departments have an interest in ensuring that patients remember the institution where they were treated successfully. This encourages them to return for any necessary future care, including reasons beyond a prosthetic joint replacement. 
+The registry can therefor be perceived as an instrument for quality control, for the implants used and for the entire process. This can range from the preoperative consultation to the procedures in the operating room, as well as the postoperative follow-up. Personal recommendations from satisfied patients are the very best advertising for hospitals and related medical institutions. As institutions providing healthcare in today's competitive environment, hospitals are also very keen to uphold their reputation, and the registry is an invaluable tool for this purpose.
 
 ## Target Users
 
 The dashboard serves five primary user groups, each with distinct analytical needs.
-
 **Orthopedic Surgeons & Surgical Teams** use the dashboard to monitor their surgical outcomes, revision rates, and complication patterns, enabling them to identify areas for technique improvement and track performance trends over time.
-
 **Hospital Quality & Safety Officers** conduct quality assurance reviews and benchmark against national standards, ensuring the hospital meets quality targets and identifying outlier performance that requires intervention.
-
 **Hospital Administrators & Department Heads** review operational metrics including procedure volumes, resource utilization, and high-risk patient percentages to make informed decisions about resource allocation, staffing, and strategic planning.
-
 **Clinical Researchers & Registry Coordinators** analyze registry data for research purposes and generate insights on arthroplasty outcomes, contributing to evidence-based medicine and publishing findings on implant performance and surgical techniques.
-
 **Implant Procurement Officers** monitor manufacturer market share and implant performance through Case Concentration Scores (CCS) to make informed procurement decisions based on performance data and market trends.
-
-------------------------------------------------------------------------
-
-## Key Features & Functionality
+# Key Features & Functionality
 
 The dashboard is organized into **three main tabs**, each addressing specific analytical needs.
 
-### **Tab 1: Quality Control**
+## **Tab 1: Quality Control**
 
 This tab focuses on benchmarking hospital performance and monitoring implant manufacturer concentration.
 
@@ -68,7 +28,7 @@ This tab focuses on benchmarking hospital performance and monitoring implant man
 
 **Case Concentration Score (CCS) & Trends** - The CCS section provides two visualizations. The gauge chart displays current market share percentage for a selected implant manufacturer with color-coded zones: green (0-20%) indicates low concentration and good diversity, yellow (20-40%) shows medium concentration, and red (40-100%) warns of high concentration and potential monopoly risk. The trend chart plots historical manufacturer market share over time on a monthly basis. Users can select manufacturers from the dropdown menu to monitor whether the hospital is becoming too dependent on a single supplier.
 
-### **Tab 2: Operational Volume**
+## **Tab 2: Operational Volume**
 
 This tab provides operational metrics and volume analytics.
 
@@ -78,7 +38,7 @@ This tab provides operational metrics and volume analytics.
 
 **Top Diagnoses Treemap** - The interactive treemap visualizes the most common diagnoses and indications for surgery, where box size represents relative frequency. A key interactive feature allows users to click on any diagnosis to open a modal showing the trend over time for that specific diagnosis. To return to the full treemap you need to click the selected box again.
 
-### **Tab 3: Complications**
+## **Tab 3: Complications**
 
 This tab focuses on adverse outcomes and complication analysis.
 
@@ -88,9 +48,7 @@ This tab focuses on adverse outcomes and complication analysis.
 
 **Complication Risk Trends** - The complication risk chart shows time series of revision rate trends with selectable time scales (Week/Month/Year) to monitor if complication rates are increasing or decreasing over time and assess the impact of quality improvement initiatives.
 
-------------------------------------------------------------------------
-
-## Global Filters
+# Required Global Filters
 
 All visualizations respond dynamically to the global filters located in the sidebar.
 
@@ -103,6 +61,30 @@ All visualizations respond dynamically to the global filters located in the side
 All these filters are connected by logic to ensure users get precisely the data visualisation they need.
 
 **Reset Filters Button** - Red button at the bottom of the sidebar that instantly resets all filters to default values. The data filtering is cleared immediately, though visual selection on the histogram may persist for a few seconds.
+
+# Some Experimental Changes
+
+## **Age Histogram for the filter with Reactivity**
+
+I particularly enjoyed working on this as it was one of the most challenging sections for the app. I had to use AI to help with the generation of this but everytime the integration would fail or result in code that doesnt work.
+
+```         
+-   The Age Histogram now correctly responds to **Global Filters** (Timeline, Joint) while maintaining its own selection capability.
+	-   	This also serves as the age range selector filter
+```
+
+## **Reset Filter Button**:
+-   Now this button correctly resets **all** filters (data filtering is cleared, though visual selection on histogram may persist for a few seconds).
+
+# Still getting a warning
+
+This warning has persisted since I opted to use plotly to make the plots more reactive and not just static .png images that have to be picked from the server every time.
+
+```         
+Warning: The 'plotly_click' event tied a source ID of 'treemap_source' is not registered. In order to obtain this event data, please add `event_register(p, 'plotly_click')` to the plot (`p`) that you wish to obtain event data from.
+```
+
+I found a more indepth discussion on the warning here: <https://github.com/plotly/plotly.R/issues/1528>
 
 ------------------------------------------------------------------------
 
